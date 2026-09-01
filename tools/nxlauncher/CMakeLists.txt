@@ -2,7 +2,7 @@ cmake_minimum_required( VERSION 3.1.0 )
 
 if( NINTENDO_SWITCH )
 	set(APP_NAME "GZDoom Launcher")
-	set(APP_AUTHOR "fgsfds")
+	set(APP_AUTHOR "Thorhax")
 	set(APP_VERSION "${SWITCH_APP_VERSION}")
 	set(APP_ICON "${CMAKE_CURRENT_SOURCE_DIR}/gzdoom_launcher.jpg")
 	set(APP_RESDIR "${CMAKE_CURRENT_SOURCE_DIR}/res")
@@ -13,7 +13,7 @@ if( NINTENDO_SWITCH )
 	target_include_directories( gzdoom_launcher PRIVATE /opt/devkitpro/portlibs/switch/include )
 	target_link_libraries( gzdoom_launcher SDL2 EGL glapi drm_nouveau nx m stdc++ )
 	add_custom_command( TARGET gzdoom_launcher POST_BUILD
-		COMMAND nacptool --create "${APP_NAME}" "${APP_VERSION}" "${APP_AUTHOR}" "gzdoom_launcher.nacp"
+		COMMAND nacptool --create "${APP_NAME}" "${APP_AUTHOR}" "${APP_VERSION}" "gzdoom_launcher.nacp"
 		COMMAND aarch64-none-elf-strip -o gzdoom_launcher_stripped $<TARGET_FILE:gzdoom_launcher>
 		COMMAND elf2nro gzdoom_launcher_stripped "${CMAKE_BINARY_DIR}/gzdoom_launcher.nro" --icon="${APP_ICON}" --nacp=gzdoom_launcher.nacp --romfsdir="${APP_RESDIR}" )
 endif()
