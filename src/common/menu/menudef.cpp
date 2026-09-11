@@ -1610,7 +1610,9 @@ extern "C"
 
 static void InitMusicMenus()
 {
+	DMenuDescriptor **soundmenu = MenuDescriptors.CheckKey("SoundOptions");
 	DMenuDescriptor **advmenu = MenuDescriptors.CheckKey("AdvSoundOptions");
+	DMenuDescriptor **midiplayermenu = MenuDescriptors.CheckKey("MidiPlayerOptions");
 	auto soundfonts = sfmanager.GetList();
 	std::tuple<const char *, int, const char *> sfmenus[] = { std::make_tuple("GusConfigMenu", SF_GUS, "midi_config"),
 																std::make_tuple("WildMidiConfigMenu", SF_GUS, "wildmidi_config"),
@@ -1638,12 +1640,27 @@ static void InitMusicMenus()
 					}
 				}
 			}
-			else if (advmenu != nullptr)
+			else
 			{
 				// Remove the item for this submenu
-				auto d = static_cast<DOptionMenuDescriptor*>(*advmenu);
-				auto it = d->GetItem(std::get<0>(p));
-				if (it != nullptr) d->mItems.Delete(d->mItems.Find(it));
+				if (advmenu != nullptr)
+				{
+					auto d = static_cast<DOptionMenuDescriptor*>(*advmenu);
+					auto it = d->GetItem(std::get<0>(p));
+					if (it != nullptr) d->mItems.Delete(d->mItems.Find(it));
+				}
+				if (soundmenu != nullptr)
+				{
+					auto d = static_cast<DOptionMenuDescriptor*>(*soundmenu);
+					auto it = d->GetItem(std::get<0>(p));
+					if (it != nullptr) d->mItems.Delete(d->mItems.Find(it));
+				}
+				if (midiplayermenu != nullptr)
+				{
+					auto d = static_cast<DOptionMenuDescriptor*>(*midiplayermenu);
+					auto it = d->GetItem(std::get<0>(p));
+					if (it != nullptr) d->mItems.Delete(d->mItems.Find(it));
+				}
 			}
 		}
 	}

@@ -1950,6 +1950,7 @@ OptionMenu SoundOptions protected
 	Slider "$SNDMNU_MENUVOLUME",		"snd_menuvolume", 0, 1, 0.05, 2
 	StaticText " "
 	Option "$SNDMNU_MIDIDEVICE",		"snd_mididevice", "MidiDevices"
+	LabeledSubMenu "Soundfont",			"fluid_patchset", "FluidPatchsetMenu"
 	StaticText " "
 	Option "$SNDMNU_UNDERWATERREVERB",	"snd_waterreverb", "OnOff"
 	Option "$SNDMNU_RANDOMIZEPITCHES",	"snd_pitched", "OnOff"
@@ -1998,6 +1999,8 @@ OptionMenu AdvSoundOptions protected
 		Submenu "$SNDMNU_OPENAL",		"OpenALSoundItems"
 	}
 
+	StaticText " "
+	LabeledSubMenu "Soundfont",				"fluid_patchset", "FluidPatchsetMenu"
 	StaticText " "
 	Submenu "$SNDMNU_MIDIPLAYER",		"MidiPlayerOptions"
 	Submenu "$SNDMNU_MODREPLAYER",		"ModReplayerOptions"
@@ -2108,8 +2111,10 @@ OptionMenu ModReplayerOptions protected
   OptionMenu MidiPlayerOptions protected
  {
 	Title "$SNDMNU_MIDIPLAYER"
-	Submenu "$ADVSNDMNU_TIMIDITY", "TimidityOptions", 0, 1
+	LabeledSubMenu "Soundfont",			"fluid_patchset", "FluidPatchsetMenu"
+	StaticText " "
 	Submenu "$ADVSNDMNU_FLUIDSYNTH", "FluidsynthOptions", 0, 1
+	Submenu "$ADVSNDMNU_TIMIDITY", "TimidityOptions", 0, 1
 	Submenu "$ADVSNDMNU_GUSEMULATION", "GUSOptions", 0, 1
 	Submenu "$ADVSNDMNU_WILDMIDI", "WildMidiOptions", 0, 1
 	Submenu "$ADVSNDMNU_OPLSYNTHESIS", "OPLOptions", 0, 1

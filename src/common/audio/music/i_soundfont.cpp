@@ -45,6 +45,7 @@
 #include "fs_findfile.h"
 #include "i_interface.h"
 #include "configfile.h"
+#include "c_cvars.h"
 #include "printf.h"
 
 //==========================================================================
@@ -545,26 +546,35 @@ void FSoundFontManager::CollectSoundfonts()
 
 const FSoundFontInfo *FSoundFontManager::FindSoundFont(const char *name, int allowed) const
 {
+	// 1. Check exact match
 	for(auto &sfi : soundfonts)
 	{
-		// an empty name will pick the first one in a compatible format.
-		if (allowed & sfi.type && (name == nullptr || *name == 0 ||
-			!sfi.mName.CompareNoCase(name) ||
-			!sfi.mNameExt.CompareNoCase(name) ||
-			!sfi.mFilename.CompareNoCase(name) ||
-			!sfi.mName.CompareNoCase(ExtractFileBase(name, false)) ||
-			!sfi.mNameExt.CompareNoCase(ExtractFileBase(name, true))))
+		if (allowed & sfi.type && (name != nullptr && *name != 0 &&
+			(!sfi.mName.CompareNoCase(name) ||
+			 !sfi.mNameExt.CompareNoCase(name) ||
+			 !sfi.mFilename.CompareNoCase(name) ||
+			 !sfi.mName.CompareNoCase(ExtractFileBase(name, false)) ||
+			 !sfi.mNameExt.CompareNoCase(ExtractFileBase(name, true)))))
 		{
 			DPrintf(DMSG_NOTIFY, "Found compatible soundfont %s\n", sfi.mNameExt.GetChars());
 			return &sfi;
 		}
 	}
-	// We did not find what we were looking for. Let's just return the first valid item that works with the given device.
+	// 2. If name was empty or fallback, prioritize custom/external soundfonts over default "gzdoom"
+	for (auto &sfi : soundfonts)
+	{
+		if ((allowed & sfi.type) && sfi.mName.CompareNoCase("gzdoom") != 0)
+		{
+			DPrintf(DMSG_NOTIFY, "Selected external soundfont %s\n", sfi.mNameExt.GetChars());
+			return &sfi;
+		}
+	}
+	// 3. Lastly return first valid item
 	for (auto &sfi : soundfonts)
 	{
 		if (allowed & sfi.type)
 		{
-			DPrintf(DMSG_NOTIFY, "Unable to find %s soundfont. Falling back to %s\n", name, sfi.mNameExt.GetChars());
+			DPrintf(DMSG_NOTIFY, "Falling back to %s\n", sfi.mNameExt.GetChars());
 			return &sfi;
 		}
 	}
@@ -676,9 +686,29 @@ FSoundFontReader *FSoundFontManager::OpenSoundFont(const char *const name, int a
 
 }
 
+EXTERN_CVAR(String, fluid_patchset)
+EXTERN_CVAR(String, timidity_config)
+
 void I_InitSoundFonts()
 {
 	sfmanager.CollectSoundfonts();
+#ifdef __SWITCH__
+	// If the user added an external soundfont, and fluid_patchset is still the default ("gzdoom"),
+	// auto-select the user's external soundfont!
+	if (stricmp(*fluid_patchset, "gzdoom") == 0 || (*fluid_patchset)[0] == 0)
+	{
+		for (auto &sfi : sfmanager.GetList())
+		{
+			if ((sfi.type & SF_SF2) && sfi.mName.CompareNoCase("gzdoom") != 0)
+			{
+				fluid_patchset = sfi.mName.GetChars();
+				timidity_config = sfi.mName.GetChars();
+				Printf(TEXTCOLOR_GREEN "Auto-selected external soundfont: %s (%s)\n", sfi.mName.GetChars(), sfi.mFilename.GetChars());
+				break;
+			}
+		}
+	}
+#endif
 }
 
 
