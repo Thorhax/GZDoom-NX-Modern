@@ -5,7 +5,7 @@
 *.aps
 /wadsrc_wad
 *.user
-/build
+/build*
 /release_gcc
 /DOOMSTATS.TXT
 /src/gitinfo.h

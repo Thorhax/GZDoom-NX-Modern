@@ -6,9 +6,10 @@
 ## 🌟 Features
 
 - **Modern GZDoom Engine:** Based on GZDoom 4.14.2 with modern ZScript VM, DECORATE, and MAPINFO parser.
-- **Hardware Acceleration:** OpenGL 3.3 Core Profile renderer powered by Mesa Nouveau on the Tegra X1 GPU.
+- **Vulkan & OpenGL Hardware Acceleration:** High-performance Vulkan backend alongside OpenGL 3.3 Core Profile powered by Mesa on the Tegra X1 GPU. Vulkan delivers significantly higher frame rates, reduced CPU overhead, and exceptional stability even in demanding scenes.
 - **Dynamic Custom Hardware Shaders:** Support for GLDEFS user shaders (`playercolor.fp`, sprite paletting, brightmaps, custom effects).
-- **Comprehensive Audio Codecs:** Integrated **ZMusic 1.3.0** with static support for FLAC, OGG/Vorbis, MP3 (mpg123), Opus, Timidity++ MIDI (`gzdoom.sf2`), and FluidSynth.
+- **Comprehensive Audio & Soundfonts:** Integrated **ZMusic 1.3.0** supporting FLAC, OGG/Vorbis, MP3 (mpg123), Opus, Timidity++, and FluidSynth with external Soundfont (`.sf2`) support.
+- **Direct Soundfont Selection:** In-game Soundfont selection directly in `Options -> Sound Options -> Soundfont` with automatic detection and loading of custom `.sf2` files.
 - **Full Controller Support:** Native Joy-Con / Pro Controller analog stick navigation, deadzones, and configurable bindings.
 - **nxlauncher GUI:** Built-in graphical pre-launch menu to select IWADs, enable/disable custom PWADs and mods, and configure resolution before launching the engine.
 
@@ -48,7 +49,43 @@
    ```text
    sdmc:/switch/gzdoom/pwads/
    ```
-5. Launch **GZDoom Launcher** from the Homebrew Menu.
+5. Place any custom Soundfonts (`.sf2`) into:
+   ```text
+   sdmc:/switch/gzdoom/soundfonts/
+   ```
+6. Launch **GZDoom Launcher** from the Homebrew Menu.
+
+---
+
+## 🌋 Vulkan Renderer
+
+This release introduces native **Vulkan API** hardware rendering for the Nintendo Switch (Horizon OS), leveraging the Tegra X1 Maxwell GPU:
+- **Massive Performance Boost:** Dramatically improved framerates and reduced frame-time variance compared to standard OpenGL.
+- **Lower CPU Overhead & Better Mod Scaling:** Handles complex ZScript mods, heavy particle counts, and dynamic lights with minimal CPU overhead.
+- **Direct Native Window Surface:** Integrates directly with Switch `vi` / `NWindow` display subsystem for zero latency.
+
+Special credit and thanks to **[NaGa](https://github.com/NaGaa95)** for developing the Vulkan driver for Nintendo Switch Horizon OS!
+
+---
+
+## 🎼 Soundfont Support & Setup
+
+GZDoom-NX-Modern includes upgraded MIDI synthesizers (**FluidSynth** and **Timidity++**) with direct custom soundfont (`.sf2`) selection:
+
+1. **Copy Soundfonts:**
+   Place your `.sf2` soundfont files into:
+   ```text
+   sdmc:/switch/gzdoom/soundfonts/
+   ```
+   *(e.g., `AweROMGM.sf2`, `SC-55.sf2`, `gzdoom.sf2`, `FluidR3_GM.sf2`)*
+
+2. **Enable in Options Menu:**
+   - Go to **Options** $\rightarrow$ **Sound Options**.
+   - Set **MIDI Device** to **FluidSynth** (or **Timidity++**).
+   - Look for the **Soundfont** option:
+     - GZDoom will automatically scan and list all `.sf2` files in your `soundfonts/` folder.
+     - Select any soundfont directly from the menu to switch soundfonts on the fly!
+   - *Auto-Detection:* If you place external soundfonts in `soundfonts/`, GZDoom will automatically detect and prioritize them on boot.
 
 ---
 
@@ -86,8 +123,10 @@ The output `gzdoom.nro`, `gzdoom.pk3`, and launcher will be created in `build/`.
 ## 📜 Credits & License
 
 - **GZDoom Team & Contributors:** [ZDoom / GZDoom](https://github.com/ZDoom/gzdoom)
+- **Vulkan Driver for Nintendo Switch:** [NaGa](https://github.com/NaGaa95) - Tegra X1 Vulkan driver for Horizon OS
 - **Original Switch Port & nxlauncher:** [fgsfds](https://github.com/fgsfdsfgs/gzdoom)
 - **ZMusic:** Christoph Oelckers & GZDoom contributors
 - **devkitPro:** devkitA64 toolchain and switch-portlibs
 
 Licensed under the **GNU General Public License v3.0 (GPLv3)**.
+
