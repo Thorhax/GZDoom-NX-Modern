@@ -193,10 +193,11 @@ namespace Priv
 
 	void DestroyWindow()
 	{
-		assert(Priv::window != nullptr);
-
-		SDL_DestroyWindow(Priv::window);
-		Priv::window = nullptr;
+		if (Priv::window != nullptr)
+		{
+			SDL_DestroyWindow(Priv::window);
+			Priv::window = nullptr;
+		}
 
 		if (Priv::displayBounds != nullptr) {
 			free(Priv::displayBounds);
@@ -315,11 +316,11 @@ private:
 void I_GetVulkanDrawableSize(int *width, int *height)
 {
 	assert(Priv::vulkanEnabled);
-	assert(Priv::window != nullptr);
 #if defined(__SWITCH__)
 	if (width) *width = 1280;
 	if (height) *height = 720;
 #else
+	assert(Priv::window != nullptr);
 	SDL_Vulkan_GetDrawableSize(Priv::window, width, height);
 #endif
 }
@@ -327,7 +328,6 @@ void I_GetVulkanDrawableSize(int *width, int *height)
 bool I_GetVulkanPlatformExtensions(unsigned int *count, const char **names)
 {
 	assert(Priv::vulkanEnabled);
-	assert(Priv::window != nullptr);
 #if defined(__SWITCH__)
 	static const char *exts[] = {
 		VK_KHR_SURFACE_EXTENSION_NAME,
@@ -340,6 +340,7 @@ bool I_GetVulkanPlatformExtensions(unsigned int *count, const char **names)
 	*count = 2;
 	return true;
 #else
+	assert(Priv::window != nullptr);
 	return SDL_Vulkan_GetInstanceExtensions(Priv::window, count, names) == SDL_TRUE;
 #endif
 }
@@ -347,11 +348,12 @@ bool I_GetVulkanPlatformExtensions(unsigned int *count, const char **names)
 bool I_CreateVulkanSurface(VkInstance instance, VkSurfaceKHR *surface)
 {
 	assert(Priv::vulkanEnabled);
-	assert(Priv::window != nullptr);
 #if defined(__SWITCH__)
+	NWindow *win = nwindowGetDefault();
+	nwindowSetDimensions(win, 1280, 720);
 	VkViSurfaceCreateInfoNN createInfo = {};
 	createInfo.sType = VK_STRUCTURE_TYPE_VI_SURFACE_CREATE_INFO_NN;
-	createInfo.window = (void*)nwindowGetDefault();
+	createInfo.window = (void*)win;
 	VkResult res = vkCreateViSurfaceNN(instance, &createInfo, nullptr, surface);
 	if (res != VK_SUCCESS)
 	{
@@ -360,6 +362,7 @@ bool I_CreateVulkanSurface(VkInstance instance, VkSurfaceKHR *surface)
 	}
 	return true;
 #else
+	assert(Priv::window != nullptr);
 	return SDL_Vulkan_CreateSurface(Priv::window, instance, surface) == SDL_TRUE;
 #endif
 }
@@ -386,15 +389,18 @@ SDLVideo::SDLVideo ()
 	if (Priv::vulkanEnabled)
 	{
 #if defined(__SWITCH__)
-		Priv::CreateWindow(SDL_WINDOW_HIDDEN | (vid_fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0));
+		// On Switch, Mesa Vulkan connects directly to libnx NWindow (nwindowGetDefault()).
+		// SDL2 on Switch only supports EGL, and SDL_CreateWindow fails when not using OpenGL.
+		// Therefore, we do not create an SDL_Window for Vulkan on Switch.
+		Priv::updateDisplayInfo();
 #else
 		Priv::CreateWindow(SDL_WINDOW_VULKAN | SDL_WINDOW_HIDDEN | (vid_fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0));
-#endif
 
 		if (Priv::window == nullptr)
 		{
 			Priv::vulkanEnabled = false;
 		}
+#endif
 	}
 #endif
 }
@@ -475,12 +481,16 @@ DFrameBuffer *SDLVideo::CreateFrameBuffer ()
 
 	if (fb == nullptr)
 	{
+#if defined(__SWITCH__) && defined(HAVE_VULKAN)
+		I_FatalError("Vulkan framebuffer could not be created on Nintendo Switch.\n");
+#else
 #ifdef HAVE_GLES2
 		if (V_GetBackend() != 0)
 			fb = new OpenGLESRenderer::OpenGLFrameBuffer(0, vid_fullscreen);
 		else
 #endif
 			fb = new OpenGLRenderer::OpenGLFrameBuffer(0, vid_fullscreen);
+#endif
 	}
 
 	return fb;
@@ -509,10 +519,16 @@ int SystemBaseFrameBuffer::GetClientWidth()
 {
 	int width = 0;
 
-
 #ifdef HAVE_VULKAN
 	assert(Priv::vulkanEnabled);
-	SDL_Vulkan_GetDrawableSize(Priv::window, &width, nullptr);
+#if defined(__SWITCH__)
+	width = 1280;
+#else
+	if (Priv::window != nullptr)
+		SDL_Vulkan_GetDrawableSize(Priv::window, &width, nullptr);
+	else
+		width = 1280;
+#endif
 #endif
 
 	return width;
@@ -524,7 +540,14 @@ int SystemBaseFrameBuffer::GetClientHeight()
 
 #ifdef HAVE_VULKAN
 	assert(Priv::vulkanEnabled);
-	SDL_Vulkan_GetDrawableSize(Priv::window, nullptr, &height);
+#if defined(__SWITCH__)
+	height = 720;
+#else
+	if (Priv::window != nullptr)
+		SDL_Vulkan_GetDrawableSize(Priv::window, nullptr, &height);
+	else
+		height = 720;
+#endif
 #endif
 
 	return height;
@@ -532,25 +555,36 @@ int SystemBaseFrameBuffer::GetClientHeight()
 
 bool SystemBaseFrameBuffer::IsFullscreen ()
 {
+#if defined(__SWITCH__)
+	return true;
+#else
+	if (Priv::window == nullptr)
+		return true;
 	return (SDL_GetWindowFlags(Priv::window) & SDL_WINDOW_FULLSCREEN_DESKTOP) != 0;
+#endif
 }
 
 void SystemBaseFrameBuffer::ToggleFullscreen(bool yes)
 {
-	SDL_SetWindowFullscreen(Priv::window, yes ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
-	if ( !yes )
+#if !defined(__SWITCH__)
+	if (Priv::window != nullptr)
 	{
-		if ( !Priv::fullscreenSwitch )
+		SDL_SetWindowFullscreen(Priv::window, yes ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
+		if ( !yes )
 		{
-			Priv::fullscreenSwitch = true;
-			vid_fullscreen = false;
-		}
-		else
-		{
-			Priv::fullscreenSwitch = false;
-			SetWindowSize(win_w, win_h);
+			if ( !Priv::fullscreenSwitch )
+			{
+				Priv::fullscreenSwitch = true;
+				vid_fullscreen = false;
+			}
+			else
+			{
+				Priv::fullscreenSwitch = false;
+				SetWindowSize(win_w, win_h);
+			}
 		}
 	}
+#endif
 }
 
 void SystemBaseFrameBuffer::SetWindowSize(int w, int h)
@@ -569,14 +603,20 @@ void SystemBaseFrameBuffer::SetWindowSize(int w, int h)
 	else
 	{
 		win_maximized = false;
-		SDL_SetWindowSize(Priv::window, w, h);
-		SDL_SetWindowPosition(Priv::window, SDL_WINDOWPOS_CENTERED_DISPLAY(vid_adapter), SDL_WINDOWPOS_CENTERED_DISPLAY(vid_adapter));
-		SetSize(GetClientWidth(), GetClientHeight());
-		int x, y;
-		SDL_GetWindowPosition(Priv::window, &x, &y);
-		win_x = x;
-		win_y = y;
-		
+		if (Priv::window != nullptr)
+		{
+			SDL_SetWindowSize(Priv::window, w, h);
+			SDL_SetWindowPosition(Priv::window, SDL_WINDOWPOS_CENTERED_DISPLAY(vid_adapter), SDL_WINDOWPOS_CENTERED_DISPLAY(vid_adapter));
+			SetSize(GetClientWidth(), GetClientHeight());
+			int x, y;
+			SDL_GetWindowPosition(Priv::window, &x, &y);
+			win_x = x;
+			win_y = y;
+		}
+		else
+		{
+			SetSize(GetClientWidth(), GetClientHeight());
+		}
 	}
 }
 
@@ -745,6 +785,9 @@ void ProcessSDLWindowEvent(const SDL_WindowEvent &event)
 // each platform has its own specific version of this function.
 void I_SetWindowTitle(const char* caption)
 {
+	if (Priv::window == nullptr)
+		return;
+
 	if (caption)
 	{
 		SDL_SetWindowTitle(Priv::window, caption);
