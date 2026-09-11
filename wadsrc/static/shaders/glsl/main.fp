@@ -547,7 +547,7 @@ float sampleShadowmapPCF(vec3 planePoint, float v)
 
 float shadowmapAttenuation(vec4 lightpos, float shadowIndex)
 {
-	if (shadowIndex >= 1024.0)
+	if (shadowIndex < 0.0 || shadowIndex >= 1024.0)
 		return 1.0; // No shadowmap available for this light
 
 	vec3 planePoint = pixelpos.xyz - lightpos.xyz;

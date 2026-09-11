@@ -29,6 +29,10 @@
 #include "hw_dynlightdata.h"
 #include "shaderuniforms.h"
 
+#if defined(__SWITCH__)
+#include <switch.h>
+#endif
+
 static const int ELEMENTS_PER_LIGHT = 4;			// each light needs 4 vec4's.
 static const int ELEMENT_SIZE = (4*sizeof(float));
 
@@ -62,6 +66,14 @@ FLightBuffer::FLightBuffer(int pipelineNbr):
 	{
 		mBufferPipeline[n] = screen->CreateDataBuffer(LIGHTBUF_BINDINGPOINT, mBufferType, false);
 		mBufferPipeline[n]->SetData(mByteSize, nullptr, BufferUsageType::Persistent);
+		void *mem = mBufferPipeline[n]->Memory();
+		if (mem)
+		{
+			memset(mem, 0, mByteSize);
+#if defined(__SWITCH__)
+			armDCacheClean(mem, mByteSize);
+#endif
+		}
 	}
 
 	Clear();
@@ -124,6 +136,9 @@ int FLightBuffer::UploadLights(FDynLightData &data)
 		memcpy(&copyptr[4], &data.arrays[0][0], size0 * ELEMENT_SIZE);
 		memcpy(&copyptr[4 + 4*size0], &data.arrays[1][0], size1 * ELEMENT_SIZE);
 		memcpy(&copyptr[4 + 4*(size0 + size1)], &data.arrays[2][0], size2 * ELEMENT_SIZE);
+#if defined(__SWITCH__)
+		armDCacheClean(copyptr, totalsize * ELEMENT_SIZE);
+#endif
 		return thisindex;
 	}
 	else

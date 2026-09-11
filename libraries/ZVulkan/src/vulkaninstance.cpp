@@ -82,6 +82,17 @@ void VulkanInstance::CreateInstance()
 		}
 	}
 
+	bool debugUtilsAvailable = false;
+	for (const auto& ext : AvailableExtensions)
+	{
+		if (strcmp(ext.extensionName, VK_EXT_DEBUG_UTILS_EXTENSION_NAME) == 0)
+		{
+			debugUtilsAvailable = true;
+			EnabledExtensions.insert(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+			break;
+		}
+	}
+
 	std::vector<const char*> enabledValidationLayersCStr;
 	for (const std::string& layer : EnabledValidationLayers)
 		enabledValidationLayersCStr.push_back(layer.c_str());
@@ -121,7 +132,7 @@ void VulkanInstance::CreateInstance()
 
 	volkLoadInstance(Instance);
 
-	if (debugLayerFound)
+	if ((debugLayerFound || debugUtilsAvailable) && vkCreateDebugUtilsMessengerEXT)
 	{
 		VkDebugUtilsMessengerCreateInfoEXT dbgCreateInfo = {};
 		dbgCreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
@@ -135,9 +146,10 @@ void VulkanInstance::CreateInstance()
 		dbgCreateInfo.pfnUserCallback = DebugCallback;
 		dbgCreateInfo.pUserData = this;
 		result = vkCreateDebugUtilsMessengerEXT(Instance, &dbgCreateInfo, nullptr, &debugMessenger);
-		CheckVulkanError(result, "vkCreateDebugUtilsMessengerEXT failed");
-
-		DebugLayerActive = true;
+		if (result == VK_SUCCESS)
+		{
+			DebugLayerActive = true;
+		}
 	}
 
 	PhysicalDevices = GetPhysicalDevices(Instance, ApiVersion);

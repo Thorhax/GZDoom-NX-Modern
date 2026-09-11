@@ -42,19 +42,23 @@ vec3 ProcessMaterialLight(Material material, vec3 color)
 
 	if (uLightIndex >= 0)
 	{
-		ivec4 lightRange = ivec4(lights[uLightIndex]) + ivec4(uLightIndex + 1);
-		if (lightRange.z > lightRange.x)
+		ivec4 rawRange = ivec4(lights[uLightIndex]);
+		if (rawRange.x >= 0 && rawRange.y >= rawRange.x && rawRange.z >= rawRange.y && rawRange.w >= rawRange.z && (rawRange.w - rawRange.x) <= 256)
 		{
-			// modulated lights
-			for(int i=lightRange.x; i<lightRange.y; i+=4)
+			ivec4 lightRange = rawRange + ivec4(uLightIndex + 1);
+			if (lightRange.z > lightRange.x)
 			{
-				dynlight.rgb += lightContribution(i, normal);
-			}
+				// modulated lights
+				for(int i=lightRange.x; i<lightRange.y; i+=4)
+				{
+					dynlight.rgb += lightContribution(i, normal);
+				}
 
-			// subtractive lights
-			for(int i=lightRange.y; i<lightRange.z; i+=4)
-			{
-				dynlight.rgb -= lightContribution(i, normal);
+				// subtractive lights
+				for(int i=lightRange.y; i<lightRange.z; i+=4)
+				{
+					dynlight.rgb -= lightContribution(i, normal);
+				}
 			}
 		}
 	}
@@ -77,18 +81,22 @@ vec3 ProcessMaterialLight(Material material, vec3 color)
 
 	if (uLightIndex >= 0)
 	{
-		ivec4 lightRange = ivec4(lights[uLightIndex]) + ivec4(uLightIndex + 1);
-		if (lightRange.w > lightRange.z)
+		ivec4 rawRange = ivec4(lights[uLightIndex]);
+		if (rawRange.x >= 0 && rawRange.y >= rawRange.x && rawRange.z >= rawRange.y && rawRange.w >= rawRange.z && (rawRange.w - rawRange.x) <= 256)
 		{
-			vec4 addlight = vec4(0.0,0.0,0.0,0.0);
-
-			// additive lights
-			for(int i=lightRange.z; i<lightRange.w; i+=4)
+			ivec4 lightRange = rawRange + ivec4(uLightIndex + 1);
+			if (lightRange.w > lightRange.z)
 			{
-				addlight.rgb += lightContribution(i, normal);
-			}
+				vec4 addlight = vec4(0.0,0.0,0.0,0.0);
 
-			frag = clamp(frag + desaturate(addlight).rgb, 0.0, 1.0);
+				// additive lights
+				for(int i=lightRange.z; i<lightRange.w; i+=4)
+				{
+					addlight.rgb += lightContribution(i, normal);
+				}
+
+				frag = clamp(frag + desaturate(addlight).rgb, 0.0, 1.0);
+			}
 		}
 	}
 

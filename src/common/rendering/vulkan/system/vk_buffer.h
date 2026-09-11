@@ -27,6 +27,7 @@ public:
 
 	void AddBuffer(VkHardwareBuffer* buffer);
 	void RemoveBuffer(VkHardwareBuffer* buffer);
+	void FlushPersistentBuffers();
 
 	VkHardwareDataBuffer* ViewpointUBO = nullptr;
 	VkHardwareDataBuffer* LightBufferSSO = nullptr;

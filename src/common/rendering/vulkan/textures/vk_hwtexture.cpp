@@ -37,6 +37,10 @@
 #include "vulkan/shaders/vk_shader.h"
 #include "vk_hwtexture.h"
 
+#if defined(__SWITCH__)
+#include <switch.h>
+#endif
+
 VkHardwareTexture::VkHardwareTexture(VulkanRenderDevice* fb, int numchannels) : fb(fb)
 {
 	mTexelsize = numchannels;
@@ -151,6 +155,9 @@ void VkHardwareTexture::CreateTexture(int w, int h, int pixelsize, VkFormat form
 	uint8_t *data = (uint8_t*)stagingBuffer->Map(0, totalSize);
 	memcpy(data, pixels, totalSize);
 	stagingBuffer->Unmap();
+#if defined(__SWITCH__)
+	armDCacheClean(data, totalSize);
+#endif
 
 	mImage.Image = ImageBuilder()
 		.Format(format)

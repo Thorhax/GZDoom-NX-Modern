@@ -25,6 +25,10 @@
 #include "vulkan/renderer/vk_streambuffer.h"
 #include "hwrenderer/data/shaderuniforms.h"
 
+#if defined(__SWITCH__)
+#include <switch.h>
+#endif
+
 VkBufferManager::VkBufferManager(VulkanRenderDevice* fb) : fb(fb)
 {
 }
@@ -62,6 +66,19 @@ void VkBufferManager::RemoveBuffer(VkHardwareBuffer* buffer)
 	{
 		if (buffer == *knownbuf) *knownbuf = nullptr;
 	}
+}
+
+void VkBufferManager::FlushPersistentBuffers()
+{
+#if defined(__SWITCH__)
+	for (auto buf : Buffers)
+	{
+		if (buf && buf->mPersistent && buf->Memory() && buf->Size() > 0)
+		{
+			armDCacheClean(buf->Memory(), buf->Size());
+		}
+	}
+#endif
 }
 
 IVertexBuffer* VkBufferManager::CreateVertexBuffer()

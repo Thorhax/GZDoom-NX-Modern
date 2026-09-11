@@ -29,6 +29,11 @@
 #include "vulkan/renderer/vk_postprocess.h"
 #include "hw_clock.h"
 #include "v_video.h"
+#include "vulkan/system/vk_buffer.h"
+#include "vulkan/system/vk_hwbuffer.h"
+#if defined(__SWITCH__)
+#include <switch.h>
+#endif
 
 extern int rendered_commandbuffers;
 int current_rendered_commandbuffers;
@@ -124,6 +129,13 @@ void VkCommandBufferManager::FlushCommands(VulkanCommandBuffer** commands, size_
 
 	if (!lastsubmit)
 		submit.AddSignal(mSubmitSemaphore[currentIndex].get());
+
+#if defined(__SWITCH__)
+	if (fb && fb->GetBufferManager())
+	{
+		fb->GetBufferManager()->FlushPersistentBuffers();
+	}
+#endif
 
 	submit.Execute(fb->device.get(), fb->device->GraphicsQueue, mSubmitFence[currentIndex].get());
 	mNextSubmit++;

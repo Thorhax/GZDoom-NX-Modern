@@ -82,8 +82,11 @@ vec3 ProcessMaterialLight(Material material, vec3 ambientLight)
 
 	if (uLightIndex >= 0)
 	{
-		ivec4 lightRange = ivec4(lights[uLightIndex]) + ivec4(uLightIndex + 1);
-		if (lightRange.z > lightRange.x)
+		ivec4 rawRange = ivec4(lights[uLightIndex]);
+		if (rawRange.x >= 0 && rawRange.y >= rawRange.x && rawRange.z >= rawRange.y && rawRange.w >= rawRange.z && (rawRange.w - rawRange.x) <= 256)
+		{
+			ivec4 lightRange = rawRange + ivec4(uLightIndex + 1);
+			if (lightRange.z > lightRange.x)
 		{
 			//
 			// modulated lights
@@ -166,6 +169,7 @@ vec3 ProcessMaterialLight(Material material, vec3 ambientLight)
 				}
 			}
 		}
+	}
 	}
 
 	// Pretend we sampled the sector light level from an irradiance map

@@ -1,5 +1,9 @@
 #pragma once
 
+#if defined(__SWITCH__)
+#include <switch.h>
+#endif
+
 #include "vulkandevice.h"
 
 class VulkanCommandPool;
@@ -63,6 +67,8 @@ public:
 	VkBuffer buffer;
 	VmaAllocation allocation;
 	size_t size = 0;
+	void *mappedPtr = nullptr;
+	size_t mappedSize = 0;
 
 	void *Map(size_t offset, size_t size);
 	void Unmap();
@@ -507,11 +513,22 @@ inline void *VulkanBuffer::Map(size_t offset, size_t size)
 {
 	void *data;
 	VkResult result = vmaMapMemory(device->allocator, allocation, &data);
-	return (result == VK_SUCCESS) ? ((uint8_t*)data) + offset : nullptr;
+	if (result != VK_SUCCESS) return nullptr;
+	mappedPtr = data;
+	mappedSize = (size == 0 || size == (size_t)-1) ? this->size : size;
+	return ((uint8_t*)data) + offset;
 }
 
 inline void VulkanBuffer::Unmap()
 {
+#if defined(__SWITCH__)
+	if (mappedPtr && mappedSize > 0)
+	{
+		armDCacheClean(mappedPtr, mappedSize);
+	}
+#endif
+	mappedPtr = nullptr;
+	mappedSize = 0;
 	vmaUnmapMemory(device->allocator, allocation);
 }
 

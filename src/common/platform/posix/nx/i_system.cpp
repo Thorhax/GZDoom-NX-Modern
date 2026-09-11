@@ -73,9 +73,10 @@ extern FStartupScreen *StartScreen;
 extern "C" void userAppInit(void) {
 	socketInitializeDefault();
 	nxlink_sock = nxlinkStdio();
+	chdir("sdmc:/switch/gzdoom");
 	setenv("MESA_DEBUG", "1", 1);
 	setenv("MESA_LOG_LEVEL", "debug", 1);
-	setenv("MESA_LOG_FILE", "mesa.log", 1);
+	setenv("MESA_LOG_FILE", "sdmc:/switch/gzdoom/mesa.log", 1);
 }
 
 extern "C" void userAppExit(void) {
@@ -94,6 +95,7 @@ void I_SetIWADInfo()
 
 void I_ShowFatalError(const char *message)
 {
+	chdir("sdmc:/switch/gzdoom");
 	FILE *f = fopen("error.log", "w");
 	if (f) {
 		fprintf(f, "FATAL ERROR:\n%s\n", message);
@@ -106,6 +108,7 @@ void I_ShowFatalError(const char *message)
 		fflush(logf);
 		fclose(logf);
 	}
+	fflush(NULL);
 	SDL_Quit();
 }
 
