@@ -41,7 +41,11 @@
 #include "c_cvars.h"
 #include "printf.h"
 
+#ifdef __SWITCH__
+#define DEF_MIDIDEV -2
+#else
 #define DEF_MIDIDEV -5
+#endif
 
 EXTERN_CVAR(Int, snd_mididevice)
 

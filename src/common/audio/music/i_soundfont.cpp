@@ -181,9 +181,49 @@ FileReader FSF2Reader::OpenMainConfigFile()
 FileReader FSF2Reader::OpenFile(const char *name)
 {
 	FileReader fr;
-	if (mFilename.CompareNoCase(name) == 0)
+	if (name == nullptr || *name == 0 ||
+	    mFilename.CompareNoCase(name) == 0 ||
+	    ExtractFileBase(mFilename.GetChars(), true).CompareNoCase(ExtractFileBase(name, true)) == 0 ||
+	    ExtractFileBase(mFilename.GetChars(), false).CompareNoCase(ExtractFileBase(name, false)) == 0)
 	{
-		fr.OpenFile(name);
+		if (name && *name && fr.OpenFile(name))
+		{
+			return fr;
+		}
+		if (fr.OpenFile(mFilename.GetChars()))
+		{
+			return fr;
+		}
+	}
+	else
+	{
+		if (fr.OpenFile(name))
+		{
+			return fr;
+		}
+	}
+
+	// Fallback path search for the soundfont file
+	FString base = ExtractFileBase(mFilename.GetChars(), true);
+	if (base.IsEmpty() && name) base = ExtractFileBase(name, true);
+	if (base.IsNotEmpty())
+	{
+		FString candidates[] = {
+			base,
+			FString("./") + base,
+			FString("./soundfonts/") + base,
+			FString("sdmc:/switch/gzdoom/") + base,
+			FString("sdmc:/switch/gzdoom/soundfonts/") + base,
+			progdir + base,
+			progdir + "soundfonts/" + base
+		};
+		for (auto& cand : candidates)
+		{
+			if (fr.OpenFile(cand.GetChars()))
+			{
+				return fr;
+			}
+		}
 	}
 	return fr;
 }
@@ -344,23 +384,28 @@ void FSoundFontManager::ProcessOneFile(const char* fn)
 	FileReader fr;
 	if (fr.OpenFile(fn))
 	{
-		// Try to identify. We only accept .sf2 and .zip by content. All other archives are intentionally ignored.
+		// Try to identify. We accept .sf2, .wopl, .wopn and .zip GUS patches.
 		char head[16] = { 0};
 		fr.Read(head, 16);
-		if (!memcmp(head, "RIFF", 4) && !memcmp(head+8, "sfbkLIST", 8))
+		const char *ext = strrchr(fn, '.');
+		if ((!memcmp(head, "RIFF", 4) && !memcmp(head+8, "sfbk", 4)) ||
+		    (ext && !stricmp(ext, ".sf2") && !memcmp(head, "RIFF", 4)))
 		{
 			FSoundFontInfo sft = { fb, fbe, fn, SF_SF2 };
 			soundfonts.Push(sft);
+			Printf(TEXTCOLOR_GREEN "Found SoundFont: %s (%s)\n", fbe.GetChars(), fn);
 		}
-		if (!memcmp(head, "WOPL3-BANK\0", 11))
+		else if (!memcmp(head, "WOPL3-BANK\0", 11))
 		{
 			FSoundFontInfo sft = { fb, fbe, fn, SF_WOPL };
 			soundfonts.Push(sft);
+			Printf(TEXTCOLOR_GREEN "Found OPL bank: %s (%s)\n", fbe.GetChars(), fn);
 		}
-		if (!memcmp(head, "WOPN2-BANK\0", 11) || !memcmp(head, "WOPN2-B2NK\0", 11))
+		else if (!memcmp(head, "WOPN2-BANK\0", 11) || !memcmp(head, "WOPN2-B2NK\0", 11))
 		{
 			FSoundFontInfo sft = { fb, fbe, fn, SF_WOPN };
 			soundfonts.Push(sft);
+			Printf(TEXTCOLOR_GREEN "Found OPN bank: %s (%s)\n", fbe.GetChars(), fn);
 		}
 		else if (!memcmp(head, "PK", 2))
 		{
@@ -375,6 +420,7 @@ void FSoundFontManager::ProcessOneFile(const char* fn)
 						// It seems like this is what we are looking for
 						FSoundFontInfo sft = { fb, fbe, fn, SF_GUS };
 						soundfonts.Push(sft);
+						Printf(TEXTCOLOR_GREEN "Found GUS patches: %s (%s)\n", fbe.GetChars(), fn);
 					}
 				}
 				delete zip;
@@ -407,6 +453,14 @@ void FSoundFontManager::CollectSoundfonts()
 
 				dir = NicePath(value);
 				FixPathSeperator(dir);
+				while (dir.IndexOf("//") >= 0)
+				{
+					dir.Substitute("//", "/");
+				}
+				if (dir.Back() == '/' && dir.Len() > 1)
+				{
+					dir.Truncate(dir.Len() - 1);
+				}
 				if (dir.IsNotEmpty())
 				{
 					if (FileSys::ScanDirectory(list, dir.GetChars(), "*", true))
@@ -424,9 +478,62 @@ void FSoundFontManager::CollectSoundfonts()
 		}
 	}
 
+#ifdef __SWITCH__
+	const char* switchDirs[] = {
+		".",
+		"./soundfonts",
+		"./fm_banks",
+		"sdmc:/switch/gzdoom",
+		"sdmc:/switch/gzdoom/soundfonts",
+		"sdmc:/switch/gzdoom/fm_banks",
+		"sdmc:/switch/soundfonts",
+		"/switch/gzdoom",
+		"/switch/gzdoom/soundfonts",
+		"/switch/soundfonts"
+	};
+	for (auto sdir : switchDirs)
+	{
+		FileSys::FileList list;
+		if (FileSys::ScanDirectory(list, sdir, "*", true))
+		{
+			for (auto& entry : list)
+			{
+				if (!entry.isDirectory)
+				{
+					ProcessOneFile(entry.FilePath.c_str());
+				}
+			}
+		}
+	}
+	if (progdir.IsNotEmpty() && progdir.CompareNoCase("./") != 0 && progdir.CompareNoCase(".") != 0)
+	{
+		FString pdir = progdir;
+		if (pdir.Back() == '/') pdir.Truncate(pdir.Len() - 1);
+		FileSys::FileList list;
+		if (FileSys::ScanDirectory(list, pdir.GetChars(), "*", true))
+		{
+			for (auto& entry : list)
+			{
+				if (!entry.isDirectory) ProcessOneFile(entry.FilePath.c_str());
+			}
+		}
+		list.clear();
+		FString sfdir = progdir + "soundfonts";
+		if (FileSys::ScanDirectory(list, sfdir.GetChars(), "*", true))
+		{
+			for (auto& entry : list)
+			{
+				if (!entry.isDirectory) ProcessOneFile(entry.FilePath.c_str());
+			}
+		}
+	}
+#endif
+
 	if (soundfonts.Size() == 0)
 	{
 		ProcessOneFile(NicePath("$PROGDIR/soundfonts/" GAMENAMELOWERCASE ".sf2").GetChars());
+		ProcessOneFile("./soundfonts/" GAMENAMELOWERCASE ".sf2");
+		ProcessOneFile("sdmc:/switch/gzdoom/soundfonts/" GAMENAMELOWERCASE ".sf2");
 	}
 }
 
@@ -441,7 +548,12 @@ const FSoundFontInfo *FSoundFontManager::FindSoundFont(const char *name, int all
 	for(auto &sfi : soundfonts)
 	{
 		// an empty name will pick the first one in a compatible format.
-		if (allowed & sfi.type && (name == nullptr || *name == 0 || !sfi.mName.CompareNoCase(name) || !sfi.mNameExt.CompareNoCase(name)))
+		if (allowed & sfi.type && (name == nullptr || *name == 0 ||
+			!sfi.mName.CompareNoCase(name) ||
+			!sfi.mNameExt.CompareNoCase(name) ||
+			!sfi.mFilename.CompareNoCase(name) ||
+			!sfi.mName.CompareNoCase(ExtractFileBase(name, false)) ||
+			!sfi.mNameExt.CompareNoCase(ExtractFileBase(name, true))))
 		{
 			DPrintf(DMSG_NOTIFY, "Found compatible soundfont %s\n", sfi.mNameExt.GetChars());
 			return &sfi;
@@ -486,7 +598,7 @@ FSoundFontReader *FSoundFontManager::OpenSoundFont(const char *const name, int a
 			char head[16] = { 0};
 			fr.Read(head, 16);
 			fr.Close();
-			if (!memcmp(head, "RIFF", 4) && !memcmp(head+8, "sfbkLIST", 8))
+			if (!memcmp(head, "RIFF", 4) && !memcmp(head+8, "sfbk", 4))
 			{
 				return new FSF2Reader(name);
 			}
@@ -522,6 +634,43 @@ FSoundFontReader *FSoundFontManager::OpenSoundFont(const char *const name, int a
 	{
 		if (sfi->type == SF_SF2) return new FSF2Reader(sfi->mFilename.GetChars());
 		else return new FZipPatReader(sfi->mFilename.GetChars());
+	}
+
+	// Fallback direct check for SF2 candidate paths
+	if (allowed & SF_SF2)
+	{
+		FString base = ExtractFileBase(name, true);
+		FString baseNoExt = ExtractFileBase(name, false);
+		FString candidates[] = {
+			name,
+			FStringf("%s.sf2", name),
+			FStringf("./soundfonts/%s", base.GetChars()),
+			FStringf("./soundfonts/%s.sf2", baseNoExt.GetChars()),
+			FStringf("./%s", base.GetChars()),
+			FStringf("./%s.sf2", baseNoExt.GetChars()),
+			FStringf("sdmc:/switch/gzdoom/soundfonts/%s", base.GetChars()),
+			FStringf("sdmc:/switch/gzdoom/soundfonts/%s.sf2", baseNoExt.GetChars()),
+			FStringf("sdmc:/switch/gzdoom/%s", base.GetChars()),
+			FStringf("sdmc:/switch/gzdoom/%s.sf2", baseNoExt.GetChars()),
+			FStringf("%ssoundfonts/%s", progdir.GetChars(), base.GetChars()),
+			FStringf("%ssoundfonts/%s.sf2", progdir.GetChars(), baseNoExt.GetChars()),
+			FStringf("%s%s", progdir.GetChars(), base.GetChars()),
+			FStringf("%s%s.sf2", progdir.GetChars(), baseNoExt.GetChars())
+		};
+		for (auto& cand : candidates)
+		{
+			FileReader fr;
+			if (fr.OpenFile(cand.GetChars()))
+			{
+				char head[16] = { 0 };
+				fr.Read(head, 16);
+				fr.Close();
+				if (!memcmp(head, "RIFF", 4))
+				{
+					return new FSF2Reader(cand.GetChars());
+				}
+			}
+		}
 	}
 	return nullptr;
 

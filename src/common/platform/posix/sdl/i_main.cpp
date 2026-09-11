@@ -209,7 +209,26 @@ int main (int argc, char **argv)
 		progdir = "./";
 	}
 #else
-	progdir = "./";
+	if (argv[0] != nullptr && strlen(argv[0]) > 0)
+	{
+		char program[PATH_MAX];
+		strncpy(program, argv[0], sizeof(program) - 1);
+		program[sizeof(program) - 1] = '\0';
+		char *slash = strrchr(program, '/');
+		if (slash != NULL)
+		{
+			*(slash + 1) = '\0';
+			progdir = program;
+		}
+		else
+		{
+			progdir = "./";
+		}
+	}
+	else
+	{
+		progdir = "./";
+	}
 #endif
 
 	I_StartupJoysticks();

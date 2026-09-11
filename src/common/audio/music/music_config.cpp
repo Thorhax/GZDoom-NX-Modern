@@ -42,6 +42,8 @@
 #include <zmusic.h>
 
 EXTERN_CVAR(Bool, mus_usereplaygain)
+EXTERN_CVAR(String, timidity_config)
+EXTERN_CVAR(String, fluid_patchset)
 //==========================================================================
 //
 // ADL Midi device
@@ -119,6 +121,12 @@ CUSTOM_CVAR(String, fluid_lib, "", CVAR_ARCHIVE | CVAR_GLOBALCONFIG | CVAR_VIRTU
 CUSTOM_CVAR(String, fluid_patchset, GAMENAMELOWERCASE, CVAR_ARCHIVE | CVAR_GLOBALCONFIG | CVAR_VIRTUAL | CVAR_SYSTEM_ONLY)
 {
 	FORWARD_STRING_CVAR(fluid_patchset);
+#ifdef __SWITCH__
+	if (stricmp(*timidity_config, *self) != 0)
+	{
+		timidity_config = *self;
+	}
+#endif
 }
 
 CUSTOM_CVAR(Float, fluid_gain, 0.5, CVAR_ARCHIVE | CVAR_GLOBALCONFIG | CVAR_VIRTUAL)
@@ -398,6 +406,12 @@ CUSTOM_CVAR(Float, timidity_min_sustain_time, 5000.f, CVAR_ARCHIVE | CVAR_GLOBAL
 CUSTOM_CVAR(String, timidity_config, GAMENAMELOWERCASE, CVAR_ARCHIVE | CVAR_GLOBALCONFIG | CVAR_VIRTUAL | CVAR_SYSTEM_ONLY)
 {
 	FORWARD_STRING_CVAR(timidity_config);
+#ifdef __SWITCH__
+	if (stricmp(*fluid_patchset, *self) != 0)
+	{
+		fluid_patchset = *self;
+	}
+#endif
 }
 #ifndef ZMUSIC_LITE
 //==========================================================================

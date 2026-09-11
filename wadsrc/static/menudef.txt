@@ -2108,8 +2108,8 @@ OptionMenu ModReplayerOptions protected
   OptionMenu MidiPlayerOptions protected
  {
 	Title "$SNDMNU_MIDIPLAYER"
-	Submenu "$ADVSNDMNU_FLUIDSYNTH", "FluidsynthOptions", 0, 1
 	Submenu "$ADVSNDMNU_TIMIDITY", "TimidityOptions", 0, 1
+	Submenu "$ADVSNDMNU_FLUIDSYNTH", "FluidsynthOptions", 0, 1
 	Submenu "$ADVSNDMNU_GUSEMULATION", "GUSOptions", 0, 1
 	Submenu "$ADVSNDMNU_WILDMIDI", "WildMidiOptions", 0, 1
 	Submenu "$ADVSNDMNU_OPLSYNTHESIS", "OPLOptions", 0, 1

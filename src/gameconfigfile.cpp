@@ -175,6 +175,18 @@ FGameConfigFile::FGameConfigFile ()
 		SetValueForKey("Path", "$PROGDIR/fm_banks", true);
 		SetValueForKey("Path", (local_app_support + "/soundfonts").GetChars(), true);
 		SetValueForKey("Path", (local_app_support + "/fm_banks").GetChars(), true);
+#elif defined(__SWITCH__)
+		SetValueForKey("Path", "$PROGDIR/soundfonts", true);
+		SetValueForKey("Path", "$PROGDIR/fm_banks", true);
+		SetValueForKey("Path", "$PROGDIR", true);
+		SetValueForKey("Path", "sdmc:/switch/gzdoom/soundfonts", true);
+		SetValueForKey("Path", "sdmc:/switch/gzdoom/fm_banks", true);
+		SetValueForKey("Path", "sdmc:/switch/gzdoom", true);
+		SetValueForKey("Path", "sdmc:/switch/soundfonts", true);
+		SetValueForKey("Path", "/switch/gzdoom/soundfonts", true);
+		SetValueForKey("Path", "/switch/gzdoom", true);
+		SetValueForKey("Path", "./soundfonts", true);
+		SetValueForKey("Path", ".", true);
 #elif !defined(__unix__)
 		SetValueForKey("Path", "$PROGDIR/soundfonts", true);
 		SetValueForKey("Path", "$PROGDIR/fm_banks", true);
