@@ -10,6 +10,43 @@
 #ifndef VOLK_H_
 #define VOLK_H_
 
+#if defined(__SWITCH__)
+#ifndef VK_USE_PLATFORM_VI_NN
+#define VK_USE_PLATFORM_VI_NN 1
+#endif
+#include <vulkan/vulkan.h>
+#include <vulkan/vulkan_vi.h>
+
+#define VOLK_HEADER_VERSION 270
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+struct VolkDeviceTable;
+
+VkResult volkInitialize(void);
+void volkInitializeCustom(PFN_vkGetInstanceProcAddr handler);
+void volkFinalize(void);
+uint32_t volkGetInstanceVersion(void);
+void volkLoadInstance(VkInstance instance);
+void volkLoadInstanceOnly(VkInstance instance);
+void volkLoadDevice(VkDevice device);
+VkInstance volkGetLoadedInstance(void);
+VkDevice volkGetLoadedDevice(void);
+void volkLoadDeviceTable(struct VolkDeviceTable* table, VkDevice device);
+
+struct VolkDeviceTable
+{
+	int dummy;
+};
+
+#ifdef __cplusplus
+}
+#endif
+
+#else // !defined(__SWITCH__)
+
 #if defined(VULKAN_H_) && !defined(VK_NO_PROTOTYPES)
 #	error To use volk, you need to define VK_NO_PROTOTYPES before including vulkan.h
 #endif
@@ -1952,6 +1989,7 @@ extern PFN_vkAcquireNextImage2KHR vkAcquireNextImage2KHR;
 }
 #endif
 
+#endif /* !defined(__SWITCH__) */
 #endif
 
 #ifdef VOLK_IMPLEMENTATION

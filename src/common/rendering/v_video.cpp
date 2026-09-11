@@ -123,10 +123,14 @@ CUSTOM_CVAR(Int, vid_preferbackend, 1, CVAR_ARCHIVE | CVAR_GLOBALCONFIG | CVAR_N
 
 int V_GetBackend()
 {
+#if defined(__SWITCH__) && defined(HAVE_VULKAN)
+	return 1;
+#else
 	int v = vid_preferbackend;
 	if (v == 3) vid_preferbackend = v = 2;
 	else if (v < 0 || v > 3) v = 0;
 	return v;
+#endif
 }
 
 

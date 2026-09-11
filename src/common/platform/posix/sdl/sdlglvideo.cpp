@@ -352,7 +352,13 @@ bool I_CreateVulkanSurface(VkInstance instance, VkSurfaceKHR *surface)
 	VkViSurfaceCreateInfoNN createInfo = {};
 	createInfo.sType = VK_STRUCTURE_TYPE_VI_SURFACE_CREATE_INFO_NN;
 	createInfo.window = (void*)nwindowGetDefault();
-	return vkCreateViSurfaceNN(instance, &createInfo, nullptr, surface) == VK_SUCCESS;
+	VkResult res = vkCreateViSurfaceNN(instance, &createInfo, nullptr, surface);
+	if (res != VK_SUCCESS)
+	{
+		Printf(TEXTCOLOR_RED "vkCreateViSurfaceNN failed: %d\n", (int)res);
+		return false;
+	}
+	return true;
 #else
 	return SDL_Vulkan_CreateSurface(Priv::window, instance, surface) == SDL_TRUE;
 #endif
@@ -426,27 +432,35 @@ DFrameBuffer *SDLVideo::CreateFrameBuffer ()
 	{
 		try
 		{
+			Printf("[Vulkan] Initializing Vulkan backend...\n");
 			unsigned int count = 64;
 			const char* names[64];
 			if (!I_GetVulkanPlatformExtensions(&count, names))
 				VulkanError("I_GetVulkanPlatformExtensions failed");
 
+			Printf("[Vulkan] Creating Vulkan instance...\n");
 			VulkanInstanceBuilder builder;
 			builder.DebugLayer(vk_debug);
 			for (unsigned int i = 0; i < count; i++)
 				builder.RequireExtension(names[i]);
 			auto instance = builder.Create();
 
+			Printf("[Vulkan] Creating VI surface...\n");
 			VkSurfaceKHR surfacehandle = nullptr;
 			if (!I_CreateVulkanSurface(instance->Instance, &surfacehandle))
 				VulkanError("I_CreateVulkanSurface failed");
 
 			surface = std::make_shared<VulkanSurface>(instance, surfacehandle);
 
+			Printf("[Vulkan] Creating VulkanRenderDevice...\n");
 			fb = new VulkanRenderDevice(nullptr, vid_fullscreen, surface);
+			Printf("[Vulkan] Vulkan initialization successful!\n");
 		}
 		catch (CVulkanError const &error)
 		{
+#if defined(__SWITCH__)
+			I_FatalError("Vulkan initialization failed:\n%s\n", error.what());
+#else
 			if (Priv::window != nullptr)
 			{
 				Priv::DestroyWindow();
@@ -454,6 +468,7 @@ DFrameBuffer *SDLVideo::CreateFrameBuffer ()
 
 			Printf(TEXTCOLOR_RED "Initialization of Vulkan failed: %s\n", error.what());
 			Priv::vulkanEnabled = false;
+#endif
 		}
 	}
 #endif

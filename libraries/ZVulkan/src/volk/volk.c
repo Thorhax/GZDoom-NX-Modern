@@ -1,4 +1,68 @@
 
+#if defined(__SWITCH__)
+
+#include "volk/volk.h"
+
+static VkInstance s_loadedInstance = VK_NULL_HANDLE;
+static VkDevice s_loadedDevice = VK_NULL_HANDLE;
+
+VkResult volkInitialize(void)
+{
+	return VK_SUCCESS;
+}
+
+void volkInitializeCustom(PFN_vkGetInstanceProcAddr handler)
+{
+	(void)handler;
+}
+
+void volkFinalize(void)
+{
+	s_loadedInstance = VK_NULL_HANDLE;
+	s_loadedDevice = VK_NULL_HANDLE;
+}
+
+uint32_t volkGetInstanceVersion(void)
+{
+	uint32_t apiVersion = 0;
+	if (vkEnumerateInstanceVersion && vkEnumerateInstanceVersion(&apiVersion) == VK_SUCCESS)
+		return apiVersion;
+	return VK_API_VERSION_1_0;
+}
+
+void volkLoadInstance(VkInstance instance)
+{
+	s_loadedInstance = instance;
+}
+
+void volkLoadInstanceOnly(VkInstance instance)
+{
+	s_loadedInstance = instance;
+}
+
+void volkLoadDevice(VkDevice device)
+{
+	s_loadedDevice = device;
+}
+
+VkInstance volkGetLoadedInstance(void)
+{
+	return s_loadedInstance;
+}
+
+VkDevice volkGetLoadedDevice(void)
+{
+	return s_loadedDevice;
+}
+
+void volkLoadDeviceTable(struct VolkDeviceTable* table, VkDevice device)
+{
+	(void)table;
+	(void)device;
+}
+
+#else // !defined(__SWITCH__)
+
 #if defined(_WIN32)
 #define VK_USE_PLATFORM_WIN32_KHR
 #elif defined(__APPLE__)
@@ -3064,3 +3128,5 @@ PFN_vkAcquireNextImage2KHR vkAcquireNextImage2KHR;
 }
 #endif
 /* clang-format on */
+
+#endif // !defined(__SWITCH__)
