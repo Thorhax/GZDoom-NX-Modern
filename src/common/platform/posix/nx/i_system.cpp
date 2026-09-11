@@ -73,6 +73,9 @@ extern FStartupScreen *StartScreen;
 extern "C" void userAppInit(void) {
 	socketInitializeDefault();
 	nxlink_sock = nxlinkStdio();
+	setenv("MESA_DEBUG", "1", 1);
+	setenv("MESA_LOG_LEVEL", "debug", 1);
+	setenv("MESA_LOG_FILE", "mesa.log", 1);
 }
 
 extern "C" void userAppExit(void) {
