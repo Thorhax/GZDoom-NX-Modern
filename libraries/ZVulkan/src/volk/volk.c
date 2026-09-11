@@ -27,7 +27,7 @@
 	#else
 		typedef int (__stdcall* FARPROC)(void);
 	#endif
-#else
+#elif !defined(__SWITCH__)
 #	include <dlfcn.h>
 #endif
 
@@ -67,8 +67,18 @@ static PFN_vkVoidFunction nullProcAddrStub(void* context, const char* name)
 	return NULL;
 }
 
+#if defined(__SWITCH__)
+extern PFN_vkVoidFunction vk_icdGetInstanceProcAddr(VkInstance instance, const char* pName);
+#endif
+
 VkResult volkInitialize(void)
 {
+#if defined(__SWITCH__)
+	vkGetInstanceProcAddr = (PFN_vkGetInstanceProcAddr)vk_icdGetInstanceProcAddr;
+	loadedModule = NULL;
+	volkGenLoadLoader(NULL, vkGetInstanceProcAddrStub);
+	return VK_SUCCESS;
+#else
 #if defined(_WIN32)
 	HMODULE module = LoadLibraryA("vulkan-1.dll");
 	if (!module)
@@ -100,6 +110,7 @@ VkResult volkInitialize(void)
 	volkGenLoadLoader(NULL, vkGetInstanceProcAddrStub);
 
 	return VK_SUCCESS;
+#endif
 }
 
 void volkInitializeCustom(PFN_vkGetInstanceProcAddr handler)
@@ -116,7 +127,7 @@ void volkFinalize(void)
 	{
 #if defined(_WIN32)
 		FreeLibrary((HMODULE)loadedModule);
-#else
+#elif !defined(__SWITCH__)
 		dlclose(loadedModule);
 #endif
 	}

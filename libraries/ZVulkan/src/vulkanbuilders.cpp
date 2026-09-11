@@ -1715,6 +1715,8 @@ VulkanInstanceBuilder& VulkanInstanceBuilder::RequireSurfaceExtensions(bool enab
 		RequireExtension(VK_MVK_MACOS_SURFACE_EXTENSION_NAME);
 #elif defined(VK_USE_PLATFORM_XLIB_KHR)
 		RequireExtension(VK_KHR_XLIB_SURFACE_EXTENSION_NAME);
+#elif defined(__SWITCH__) || defined(VK_USE_PLATFORM_VI_NN)
+		RequireExtension(VK_NN_VI_SURFACE_EXTENSION_NAME);
 #endif
 
 		OptionalExtension(VK_EXT_SWAPCHAIN_COLOR_SPACE_EXTENSION_NAME); // For HDR support

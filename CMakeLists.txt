@@ -285,6 +285,9 @@ else()
 
 	if ( HAVE_VULKAN )
 		set( ALL_C_FLAGS "${ALL_C_FLAGS} -DHAVE_VULKAN" )
+		if ( NINTENDO_SWITCH )
+			set( ALL_C_FLAGS "${ALL_C_FLAGS} -DVK_USE_PLATFORM_VI_NN=1" )
+		endif()
 	endif()
 
 	if ( HAVE_GLES2 )

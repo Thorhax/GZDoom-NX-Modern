@@ -33,6 +33,14 @@
 
 // HEADER FILES ------------------------------------------------------------
 
+#ifdef __SWITCH__
+#define SDL2_STATIC_LIBRARY
+#ifndef VK_USE_PLATFORM_VI_NN
+#define VK_USE_PLATFORM_VI_NN 1
+#endif
+#include <switch.h>
+#endif
+
 #include "i_module.h"
 #include "i_soundinternal.h"
 #include "i_system.h"
@@ -67,10 +75,6 @@
 #if defined HAVE_VULKAN
 #include <SDL_vulkan.h>
 #endif // HAVE_VULKAN
-
-#ifdef __SWITCH__
-#define SDL2_STATIC_LIBRARY
-#endif
 
 // TYPES -------------------------------------------------------------------
 
@@ -312,21 +316,46 @@ void I_GetVulkanDrawableSize(int *width, int *height)
 {
 	assert(Priv::vulkanEnabled);
 	assert(Priv::window != nullptr);
+#if defined(__SWITCH__)
+	if (width) *width = 1280;
+	if (height) *height = 720;
+#else
 	SDL_Vulkan_GetDrawableSize(Priv::window, width, height);
+#endif
 }
 
 bool I_GetVulkanPlatformExtensions(unsigned int *count, const char **names)
 {
 	assert(Priv::vulkanEnabled);
 	assert(Priv::window != nullptr);
+#if defined(__SWITCH__)
+	static const char *exts[] = {
+		VK_KHR_SURFACE_EXTENSION_NAME,
+		VK_NN_VI_SURFACE_EXTENSION_NAME
+	};
+	if (names) {
+		names[0] = exts[0];
+		names[1] = exts[1];
+	}
+	*count = 2;
+	return true;
+#else
 	return SDL_Vulkan_GetInstanceExtensions(Priv::window, count, names) == SDL_TRUE;
+#endif
 }
 
 bool I_CreateVulkanSurface(VkInstance instance, VkSurfaceKHR *surface)
 {
 	assert(Priv::vulkanEnabled);
 	assert(Priv::window != nullptr);
+#if defined(__SWITCH__)
+	VkViSurfaceCreateInfoNN createInfo = {};
+	createInfo.sType = VK_STRUCTURE_TYPE_VI_SURFACE_CREATE_INFO_NN;
+	createInfo.window = (void*)nwindowGetDefault();
+	return vkCreateViSurfaceNN(instance, &createInfo, nullptr, surface) == VK_SUCCESS;
+#else
 	return SDL_Vulkan_CreateSurface(Priv::window, instance, surface) == SDL_TRUE;
+#endif
 }
 #endif
 
@@ -350,7 +379,11 @@ SDLVideo::SDLVideo ()
 
 	if (Priv::vulkanEnabled)
 	{
+#if defined(__SWITCH__)
+		Priv::CreateWindow(SDL_WINDOW_HIDDEN | (vid_fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0));
+#else
 		Priv::CreateWindow(SDL_WINDOW_VULKAN | SDL_WINDOW_HIDDEN | (vid_fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0));
+#endif
 
 		if (Priv::window == nullptr)
 		{

@@ -1295,6 +1295,10 @@ endif()
 
 if( NINTENDO_SWITCH )
 	list( REMOVE_ITEM PROJECT_LIBRARIES dl )
+	if( HAVE_VULKAN )
+		set( PROJECT_LIBRARIES ${PROJECT_LIBRARIES} vulkan expat zstd )
+		target_link_options( zdoom PRIVATE "-Wl,-u,vk_icdGetInstanceProcAddr" "-pthread" "-Wl,--allow-multiple-definition" )
+	endif()
 	set( PROJECT_LIBRARIES ${PROJECT_LIBRARIES} SDL2 EGL glapi drm_nouveau nx m stdc++ )
 	link_directories( /opt/devkitpro/portlibs/switch/lib )
 	target_link_libraries( zdoom
